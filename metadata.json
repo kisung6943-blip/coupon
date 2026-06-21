@@ -1,0 +1,8 @@
+{
+  "name": "쿠팡 쿠폰 매니저",
+  "description": "쿠팡 할인쿠폰의 제품명, 사용기간, 할인액, 신청일을 한눈에 관리하는 대시보드 앱",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
