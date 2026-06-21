@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Coupon, CouponStatus, Promotion } from './types';
+import { Coupon, CouponStatus, Promotion } from './types'; // Trigger HMR
 import { CouponCard } from './components/CouponCard';
 import { CouponForm } from './components/CouponForm';
-import { Ticket, Plus, LayoutDashboard, Search, Filter } from 'lucide-react';
+import { PromotionForm } from './components/PromotionForm';
+import { Ticket, Plus, LayoutDashboard, Search, Filter, Trash2 } from 'lucide-react';
 import { isExpired, formatKRW } from './utils';
 
 const INITIAL_MOCK_DATA: Coupon[] = [
@@ -35,7 +36,7 @@ const INITIAL_MOCK_DATA: Coupon[] = [
   }
 ];
 
-const PROMOTION_MOCK_DATA: Promotion[] = [
+const INITIAL_PROMOTION_MOCK_DATA: Promotion[] = [
   {
     id: '1',
     productName: '여름 시즌 반팔티 특가전',
@@ -65,12 +66,43 @@ export default function App() {
     return INITIAL_MOCK_DATA;
   });
 
+  const [promotions, setPromotions] = useState<Promotion[]>(() => {
+    const saved = localStorage.getItem('coupang_promotions');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return INITIAL_PROMOTION_MOCK_DATA;
+      }
+    }
+    return INITIAL_PROMOTION_MOCK_DATA;
+  });
+
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isPromoFormOpen, setIsPromoFormOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'used'>('all'); // expired is naturally handled within 'all' but disabled
 
   useEffect(() => {
     localStorage.setItem('coupang_coupons', JSON.stringify(coupons));
   }, [coupons]);
+
+  useEffect(() => {
+    localStorage.setItem('coupang_promotions', JSON.stringify(promotions));
+  }, [promotions]);
+
+  const handleAddPromotion = (newPromoData: Omit<Promotion, 'id'>) => {
+    const newPromo: Promotion = {
+      ...newPromoData,
+      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+    };
+    setPromotions([newPromo, ...promotions]);
+  };
+
+  const handleDeletePromotion = (id: string) => {
+    if (window.confirm('이 프로모션을 정말 삭제하시겠습니까?')) {
+      setPromotions(promotions.filter(p => p.id !== id));
+    }
+  };
 
   const handleAddCoupon = (newCouponData: Omit<Coupon, 'id' | 'status'>) => {
     const newCoupon: Coupon = {
@@ -183,9 +215,18 @@ export default function App() {
 
         {/* Promotion History Section */}
         <div className="mt-16 pb-12">
-          <div className="flex items-center gap-2 mb-6">
-            <LayoutDashboard className="text-red-600" size={24} />
-            <h2 className="text-xl font-bold text-gray-900">프로모션 신청 내역</h2>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <LayoutDashboard className="text-red-600" size={24} />
+              <h2 className="text-xl font-bold text-gray-900">프로모션 신청 내역</h2>
+            </div>
+            <button 
+              onClick={() => setIsPromoFormOpen(true)}
+              className="flex items-center gap-1.5 bg-gray-900 hover:bg-black text-white px-3 py-1.5 rounded-lg font-medium text-sm transition-colors shadow-sm"
+            >
+              <Plus size={16} />
+              품목 추가
+            </button>
           </div>
           
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -199,10 +240,11 @@ export default function App() {
                     <th className="px-6 py-4 font-semibold">순이익</th>
                     <th className="px-6 py-4 font-semibold">마진율</th>
                     <th className="px-6 py-4 font-semibold">마감일</th>
+                    <th className="px-6 py-4 font-semibold text-center w-20">관리</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {PROMOTION_MOCK_DATA.map((promo) => {
+                  {promotions.map((promo) => {
                     const SHIPPING_FEE = 1900;
                     const PACKAGING_FEE = 1000;
                     const netProfit = promo.promotionPrice - (promo.costPrice + SHIPPING_FEE) - PACKAGING_FEE;
@@ -215,6 +257,15 @@ export default function App() {
                         <td className="px-6 py-4 text-green-600 font-medium">{formatKRW(netProfit)}원</td>
                         <td className="px-6 py-4 text-blue-600 font-medium">{marginRate}%</td>
                         <td className="px-6 py-4 text-gray-600">{promo.deadline}</td>
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => handleDeletePromotion(promo.id)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="삭제"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -230,6 +281,14 @@ export default function App() {
         <CouponForm 
           onAdd={handleAddCoupon} 
           onClose={() => setIsFormOpen(false)} 
+        />
+      )}
+
+      {/* Add Promotion Modal */}
+      {isPromoFormOpen && (
+        <PromotionForm 
+          onAdd={handleAddPromotion} 
+          onClose={() => setIsPromoFormOpen(false)} 
         />
       )}
     </div>
